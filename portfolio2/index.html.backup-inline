@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>刘子旭 · Event Production Portfolio</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    overflow: hidden;
+    background: #050505;
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: #e8e8e8;
+    user-select: none;
+    -webkit-user-select: none;
+    letter-spacing: 0.06em;
+    word-spacing: 1px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    transition: opacity 0.8s ease;
+  }
+  #canvas-container.hidden { opacity: 0; pointer-events: none; }
+  canvas { display: block; }
+
+  /* Nav */
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 32px;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .nav.hidden { opacity: 0; }
+  .nav-name {
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: #ffffff;
+    pointer-events: auto;
+    cursor: pointer;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition: border-color 150ms linear;
+    padding-bottom: 2px;
+  }
+  .nav-name:hover { border-color: #fff; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    z-index: 20;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    background: rgba(18,18,18,0.98);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 16px 22px;
+    border-radius: 2px;
+    max-width: 300px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 24px rgba(255,255,255,0.04);
+    letter-spacing: 0.08em;
+  }
+  .tooltip.visible { opacity: 1; transform: translateY(0); }
+  .tooltip-tag {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 6px;
+    font-weight: 400;
+  }
+  .tooltip-title {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: 0.06em;
+  }
+  .tooltip-count {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.3);
+    margin-top: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Loading */
+  .loading {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: #050505;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1s ease;
+  }
+  .loading.hidden { opacity: 0; pointer-events: none; }
+  .loading-ring {
+    width: 32px; height: 32px;
+    border: 1.5px solid rgba(255,255,255,0.06);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 24px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    font-weight: 400;
+  }
+
+  /* Hint */
+  .hint {
+    position: fixed;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    pointer-events: none;
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.18);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 2;
+    transition: opacity 0.6s ease;
+  }
+  .hint.hidden { opacity: 0; }
+
+  /* Project Detail View */
+  #detail-view {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: #050505;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+  #detail-view.active { opacity: 1; pointer-events: auto; }
+
+  .detail-header {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    background: rgba(5,5,5,0.96);
+    backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .detail-back {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.3s ease;
+    background: none;
+    border: none;
+    font-family: inherit;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 2px;
+  }
+  .detail-back:hover { color: #fff; border-color: #fff; }
+  .detail-back svg { width: 14px; height: 14px; }
+  .detail-info { text-align: right; }
+  .detail-title { font-size: 0.9rem; font-weight: 500; letter-spacing: 0.04em; margin-bottom: 4px; color: #fff; }
+  .detail-meta { font-size: 0.6rem; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .detail-body {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 64px 32px 120px;
+  }
+  .detail-hero {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    border-radius: 2px;
+    margin-bottom: 56px;
+    box-shadow: 0 2px 16px rgba(255,255,255,0.04);
+  }
+  .detail-section {
+    margin-bottom: 64px;
+  }
+  .detail-section h2 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding-bottom: 10px;
+  }
+  .detail-section p {
+    font-size: 0.95rem;
+    line-height: 2;
+    color: #bbb;
+    margin-bottom: 16px;
+    letter-spacing: 0.02em;
+  }
+  .detail-section strong { color: #fff; font-weight: 600; }
+
+  .detail-gallery {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 40px;
+  }
+  .detail-gallery img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.6s ease, box-shadow 0.6s ease;
+  }
+  .detail-gallery img:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(255,255,255,0.08);
+  }
+  @media (max-width: 640px) {
+    .detail-gallery { grid-template-columns: 1fr; }
+    .detail-header { padding: 14px 20px; }
+    .nav { padding: 14px 20px; }
+  }
+
+  /* About / Resume Overlay */
+  #about-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(5,5,5,0.98);
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #about-overlay.active { opacity: 1; pointer-events: auto; }
+  .about-close {
+    position: fixed;
+    top: 28px; right: 32px;
+    z-index: 160;
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.35);
+    transition: all 0.3s ease;
+  }
+  .about-close:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+  .about-content {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 120px 32px 100px;
+  }
+  .about-name {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+    color: #fff;
+  }
+  .about-role {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 40px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .about-contact {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 56px;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.45);
+    flex-wrap: wrap;
+    letter-spacing: 0.06em;
+  }
+  .about-section { margin-bottom: 48px; }
+  .about-section h3 {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-weight: 500;
+  }
+  .about-item { margin-bottom: 24px; }
+  .about-item h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #fff;
+    letter-spacing: 0.03em;
+  }
+  .about-item .about-meta {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .about-item p {
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: #aaa;
+    letter-spacing: 0.02em;
+  }
+  .about-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .about-skills span {
+    font-size: 0.72rem;
+    padding: 7px 16px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 2px;
+    color: #aaa;
+    letter-spacing: 0.04em;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* Lightbox */
+  #lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  #lightbox.active { opacity: 1; pointer-events: auto; }
+  #lightbox img {
+    max-width: 92vw;
+    max-height: 90vh;
+    object-fit: contain;
+    transform: scale(0.96);
+    transition: transform 0.4s cubic-bezier(0.23,1,0.32,1);
+  }
+  #lightbox.active img { transform: scale(1); }
+  .lb-close {
+    position: absolute;
+    top: 20px; right: 24px;
+    width: 44px; height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    font-size: 1.4rem;
+    transition: all 0.3s ease;
+  }
+  .lb-close:hover { color: #fff; background: rgba(255,255,255,0.15); }
+  .lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px; height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+  }
+  .lb-nav:hover { color: #fff; background: rgba(255,255,255,0.12); }
+  .lb-prev { left: 16px; }
+  .lb-next { right: 16px; }
+  .lb-counter {
+    position: absolute;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="loading-ring"></div>
+  <div class="loading-text">Loading Portfolio</div>
+</div>
+
+<div class="nav" id="main-nav">
+  <div class="nav-name" onclick="showAbout()">刘子旭 · Luca</div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-tag" id="tooltip-tag"></div>
+  <div class="tooltip-title" id="tooltip-title"></div>
+  <div class="tooltip-count" id="tooltip-count"></div>
+</div>
+
+<div class="hint" id="hint">
+  Drag to orbit &nbsp;&middot;&nbsp; Scroll to zoom &nbsp;&middot;&nbsp; Click to explore
+</div>
+
+<div id="error-display" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:999; background:rgba(30,30,30,0.96); color:#fff; padding:28px 36px; border-radius:2px; font-size:0.8rem; line-height:1.7; max-width:70vw; display:none; white-space:pre-wrap; box-shadow:0 8px 40px rgba(255,255,255,0.15); letter-spacing:0.04em;"></div>
+
+<div id="canvas-container"></div>
+
+<div id="detail-view">
+  <div class="detail-header">
+    <button class="detail-back" onclick="backToSpace()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Space
+    </button>
+    <div class="detail-info">
+      <div class="detail-title" id="detail-title"></div>
+      <div class="detail-meta" id="detail-meta"></div>
+    </div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<div id="about-overlay">
+  <div class="about-close" onclick="hideAbout()">&times;</div>
+  <div class="about-content">
+    <div class="about-name">刘子旭</div>
+    <div class="about-role">Luca · Event Producer · Hong Kong</div>
+    <div class="about-contact">
+      <span>+86 16600208184</span>
+      <span>16600208184@163.com</span>
+      <span>香港</span>
+    </div>
+
+    <div class="about-section">
+      <h3>Profile</h3>
+      <p style="font-size:0.9rem;line-height:1.8;color:#999;">
+        专注于大型会务执行与活动策划，具备从前期策划、供应商对接、现场执行到后期复盘的全流程项目管理经验。
+        擅长处理高规格、高复杂度的企业活动，包括颁奖典礼、高峰论坛、交响音乐会、新车发布会及品牌晚宴等多元场景。
+        在高压环境下保持精准执行，注重细节与体验，致力于为客户创造超越预期的活动价值。
+      </p>
+    </div>
+
+    <div class="about-section">
+      <h3>Work Experience</h3>
+      <div class="about-item">
+        <h4>Real Media (HK) · Event Producer</h4>
+        <div class="about-meta">2024.10 — 2025.12 · Hong Kong</div>
+        <p>负责品牌线下活动、发布会、快闪活动、城市巡展、企业沙龙全案策划执行。独立完成活动创意方案、策划案、流程脚本、预算拆解、执行排期撰写与落地。统筹现场对接品牌方、甲方流程管控、物料供应商、搭建商、主持人/演艺、媒体资源，把控活动全流程进度与落地效果，保障活动高标准顺利落地，处理突发问题及应急处理。</p>
+      </div>
+      <div class="about-item">
+        <h4>中国文字博物馆 · 新媒体运营</h4>
+        <div class="about-meta">2022.9 — 2024.6</div>
+        <p>负责博物馆品牌宣传、新媒体矩阵运营与内容全案制作，含摄影、视频剪辑、后期统筹。管理摄影与后期制作团队，制定视觉标准，提升内容产出效率与传播质量。策划执行多场公众讲座、文化推广活动，强化馆方品牌影响力与公众参与度。依据数据反馈优化传播策略，提升线上曝光与线下活动到场率。</p>
+      </div>
+      <div class="about-item">
+        <h4>Ogilvy · Creative Intern</h4>
+        <div class="about-meta">2020.2 — 2020.6 · Beijing</div>
+        <p>参与创意头脑风暴，协助确定品牌广告创意方向，搜集整理行业优质创意案例，搭建项目素材库。撰写海报文案、社媒文案、短视频脚本并校对润色，协助完成平面视觉排版、物料设计与画面优化。跟进创意方案修改，对接各部门推进项目进度。熟悉4A广告创作流程，配合完成各类宣传物料落地。</p>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h3>Education</h3>
+      <div class="about-item">
+        <h4>岭南大学 · 艺术与文化遗产管理（数字未来方向）</h4>
+        <div class="about-meta">2024 — 2025 · 硕士研究生</div>
+      </div>
+      <div class="about-item">
+        <h4>南开大学 · 视觉传达设计</h4>
+        <div class="about-meta">2017 — 2021 · 本科</div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h3>Awards & Honors</h3>
+      <div class="about-item">
+        <p style="font-size:0.85rem;line-height:1.75;color:#999;">
+          靳埭强设计奖 2018 · Hiiibrand Awards 2020 · 全国大学生广告艺术大赛 2020 · GDC设计奖 2021 · 白金创意国际大学生平面设计大赛 2019 · 乡村美学顾问（河南安阳）2024
+        </p>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h3>Skills</h3>
+      <div class="about-skills">
+        <span>活动策划及新媒体全流程运营</span>
+        <span>普通话一乙</span>
+        <span>英语流利</span>
+        <span>AOW潜水员</span>
+        <span>CAAC民用无人机机长</span>
+        <span>基础编程（Arduino，TD）</span>
+        <span>Adobe全家桶</span>
+        <span>Windows全家桶</span>
+        <span>计算机二级</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox">
+  <div class="lb-close" onclick="closeLightbox()">&times;</div>
+  <div class="lb-nav lb-prev" onclick="lbPrev()">&#8249;</div>
+  <img id="lightbox-img" src="" alt="">
+  <div class="lb-nav lb-next" onclick="lbNext()">&#8250;</div>
+  <div class="lb-counter" id="lb-counter"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="project-copy.js"></script>
+<script type="module">
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+
+
+/* ========== ERROR HANDLING ========== */
+const errorDisplay = document.getElementById('error-display');
+function showError(msg) {
+  errorDisplay.style.display = 'block';
+  errorDisplay.textContent = msg;
+}
+window.addEventListener('error', (e) => {
+  showError('Runtime Error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  showError('Unhandled Promise: ' + e.reason);
+});
+
+try {
+/* ========== THREE.JS SCENE ========== */
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050505);
+scene.fog = new THREE.Fog(0x050505, 100, 320);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+/* Lights - soft, gallery-like illumination on white */
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.35);
+dirLight.position.set(40, 60, 40);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(1024, 1024);
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.18);
+fillLight.position.set(-40, 25, -30);
+scene.add(fillLight);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.10);
+backLight.position.set(0, 15, -60);
+scene.add(backLight);
+
+/* Spherical layout parameters - generous spacing inspired by olafureliasson.net */
+const cardW = 20;
+const cardH = 15;
+const radius = 72;
+const flattenY = 0.38;
+const depthVariation = 16;
+
+const cards = [];
+const textureLoader = new THREE.TextureLoader();
+let loadedCount = 0;
+const totalProjects = PROJECTS.length;
+
+function checkAllLoaded() {
+  loadedCount++;
+  if (loadedCount >= totalProjects) {
+    document.getElementById('loading').classList.add('hidden');
+    setTimeout(() => { document.getElementById('hint').classList.add('hidden'); }, 6000);
+  }
+}
+
+PROJECTS.forEach((proj, i) => {
+  const geometry = new THREE.PlaneGeometry(cardW, cardH);
+  let material;
+
+  if (proj.cover) {
+    const tex = textureLoader.load(
+      'projects/' + proj.cover,
+      () => checkAllLoaded(),
+      undefined,
+      () => checkAllLoaded()
+    );
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    material = new THREE.MeshStandardMaterial({
+      map: tex,
+      side: THREE.DoubleSide,
+      roughness: 0.45,
+      metalness: 0.02,
+      color: 0xcccccc
+    });
+  } else {
+    material = new THREE.MeshStandardMaterial({
+      color: 0x333333,
+      side: THREE.DoubleSide,
+      roughness: 0.45
+    });
+    checkAllLoaded();
+  }
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.userData = { project: proj, originalScale: 1 };
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+
+  /* Fibonacci sphere distribution with depth layering for spatial gallery feel */
+  const phi = Math.acos(1 - 2 * (i + 0.5) / totalProjects);
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+  const depthOffset = Math.sin(i * 2.3 + 1.0) * depthVariation * 0.5;
+  const r = radius + depthOffset;
+
+  const x = r * Math.sin(phi) * Math.cos(theta);
+  const y = r * Math.cos(phi) * flattenY;
+  const z = r * Math.sin(phi) * Math.sin(theta);
+
+  mesh.position.set(x, y, z);
+  scene.add(mesh);
+  cards.push(mesh);
+});
+
+/* Central sphere - minimal dark accent */
+const sphereGeo = new THREE.SphereGeometry(2.8, 64, 64);
+const sphereMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  roughness: 0.35,
+  metalness: 0.4
+});
+const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+sphere.position.set(0, 0, 0);
+sphere.castShadow = true;
+scene.add(sphere);
+
+/* "I'm Luca" billboard label - minimal typographic accent */
+function createLabelTexture() {
+  const cvs = document.createElement('canvas');
+  cvs.width = 512;
+  cvs.height = 128;
+  const ctx = cvs.getContext('2d');
+  ctx.clearRect(0, 0, 512, 128);
+  ctx.fillStyle = '#050505';
+  ctx.font = '400 48px -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = '4px';
+  ctx.fillText("I'm Luca", 256, 64);
+  return new THREE.CanvasTexture(cvs);
+}
+
+const labelTex = createLabelTexture();
+labelTex.minFilter = THREE.LinearFilter;
+const labelGeo = new THREE.PlaneGeometry(5, 1.25);
+const labelMat = new THREE.MeshBasicMaterial({
+  map: labelTex,
+  transparent: true,
+  opacity: 0.92,
+  depthTest: false,
+  side: THREE.DoubleSide
+});
+const labelMesh = new THREE.Mesh(labelGeo, labelMat);
+labelMesh.position.set(0, 0, 2.4);
+labelMesh.renderOrder = 10;
+labelMesh.raycast = () => {};
+scene.add(labelMesh);
+
+/* Camera orbit - wider view for spacious gallery feel */
+let camR = 115;
+let camT = 0;
+let camP = Math.PI / 2.15;
+let targetT = 0;
+let targetP = Math.PI / 2.15;
+let isDragging = false;
+let lastMX = 0, lastMY = 0;
+
+function updateCamera() {
+  camera.position.x = camR * Math.sin(camP) * Math.cos(camT);
+  camera.position.y = camR * Math.cos(camP);
+  camera.position.z = camR * Math.sin(camP) * Math.sin(camT);
+  camera.lookAt(0, 0, 0);
+}
+updateCamera();
+
+/* Raycaster */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2(-99, -99);
+let hoveredCard = null;
+let hoveredSphere = false;
+let mouseX = 0, mouseY = 0;
+
+const tooltip = document.getElementById('tooltip');
+const tooltipTag = document.getElementById('tooltip-tag');
+const tooltipTitle = document.getElementById('tooltip-title');
+const tooltipCount = document.getElementById('tooltip-count');
+
+function onPointerMove(e) {
+  const cx = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const cy = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  mouse.x = (cx / window.innerWidth) * 2 - 1;
+  mouse.y = -(cy / window.innerHeight) * 2 + 1;
+  mouseX = cx;
+  mouseY = cy;
+  if (isDragging) {
+    const dx = cx - lastMX;
+    const dy = cy - lastMY;
+    targetT -= dx * 0.005;
+    targetP += dy * 0.005;
+    targetP = Math.max(0.3, Math.min(Math.PI - 0.3, targetP));
+    lastMX = cx;
+    lastMY = cy;
+  }
+}
+
+function onPointerDown(e) {
+  isDragging = true;
+  const cx = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const cy = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  lastMX = cx;
+  lastMY = cy;
+}
+
+function onPointerUp() {
+  isDragging = false;
+}
+
+function onWheel(e) {
+  camR += e.deltaY * 0.06;
+  camR = Math.max(55, Math.min(200, camR));
+}
+
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener('mousedown', onPointerDown);
+window.addEventListener('mouseup', onPointerUp);
+window.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 1) {
+    onPointerMove(e);
+  }
+}, { passive: false });
+window.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    onPointerDown(e);
+  }
+}, { passive: false });
+window.addEventListener('touchend', onPointerUp);
+window.addEventListener('wheel', onWheel, { passive: false });
+
+/* Click */
+window.addEventListener('click', (e) => {
+  if (isDragging && (Math.abs(e.clientX - lastMX) > 4 || Math.abs(e.clientY - lastMY) > 4)) return;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  const sphereHits = raycaster.intersectObject(sphere);
+  if (sphereHits.length > 0) {
+    showAbout();
+    return;
+  }
+
+  const hits = raycaster.intersectObjects(cards);
+  if (hits.length > 0) {
+    const proj = hits[0].object.userData.project;
+    openDetail(proj);
+  }
+});
+
+/* Detail view */
+function openDetail(proj) {
+  const detailView = document.getElementById('detail-view');
+  const detailTitle = document.getElementById('detail-title');
+  const detailMeta = document.getElementById('detail-meta');
+  const detailBody = document.getElementById('detail-body');
+  const mainNav = document.getElementById('main-nav');
+
+  detailTitle.textContent = proj.name;
+  detailMeta.textContent = proj.count + (proj.count > 1 ? ' Images' : ' Image');
+
+  const copy = PROJECT_COPY[proj.id] || { overview: '', contribution: '' };
+
+  let html = '';
+  if (proj.cover) {
+    html += '<img class="detail-hero" src="projects/' + proj.cover + '" alt="">';
+  }
+  html += '<div class="detail-section"><h2>Project Overview</h2><p>' + (copy.overview || '') + '</p></div>';
+  html += '<div class="detail-section"><h2>My Contribution</h2><p>' + (copy.contribution || '') + '</p></div>';
+
+  if (proj.images && proj.images.length) {
+    html += '<div class="detail-section"><h2>Gallery</h2><div class="detail-gallery">';
+    proj.images.forEach((img, idx) => {
+      html += '<img src="projects/' + img + '" alt="" onclick="openLightbox(' + idx + ')">';
+    });
+    html += '</div></div>';
+  }
+
+  detailBody.innerHTML = html;
+  detailView.classList.add('active');
+  container.classList.add('hidden');
+  mainNav.classList.add('hidden');
+  document.body.style.overflow = 'auto';
+
+  window.currentProject = proj;
+  window.currentImageIndex = 0;
+}
+
+window.backToSpace = function() {
+  document.getElementById('detail-view').classList.remove('active');
+  container.classList.remove('hidden');
+  document.getElementById('main-nav').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+};
+
+/* About overlay */
+window.showAbout = function() {
+  document.getElementById('about-overlay').classList.add('active');
+  container.classList.add('hidden');
+  document.getElementById('main-nav').classList.add('hidden');
+  document.getElementById('hint').classList.add('hidden');
+};
+
+window.hideAbout = function() {
+  document.getElementById('about-overlay').classList.remove('active');
+  container.classList.remove('hidden');
+  document.getElementById('main-nav').classList.remove('hidden');
+};
+
+/* Lightbox */
+window.openLightbox = function(index) {
+  const proj = window.currentProject;
+  if (!proj || !proj.images.length) return;
+  window.currentImageIndex = index;
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  img.src = 'projects/' + proj.images[index];
+  document.getElementById('lb-counter').textContent = (index + 1) + ' / ' + proj.images.length;
+  lb.classList.add('active');
+};
+
+window.closeLightbox = function() {
+  document.getElementById('lightbox').classList.remove('active');
+};
+
+window.lbPrev = function() {
+  const proj = window.currentProject;
+  if (!proj) return;
+  let i = window.currentImageIndex - 1;
+  if (i < 0) i = proj.images.length - 1;
+  openLightbox(i);
+};
+
+window.lbNext = function() {
+  const proj = window.currentProject;
+  if (!proj) return;
+  let i = window.currentImageIndex + 1;
+  if (i >= proj.images.length) i = 0;
+  openLightbox(i);
+};
+
+document.addEventListener('keydown', (e) => {
+  const lb = document.getElementById('lightbox');
+  if (!lb.classList.contains('active')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lbPrev();
+  if (e.key === 'ArrowRight') lbNext();
+});
+
+/* Resize */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* Animation loop */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  /* Auto rotate when not dragging - calm, gallery-like drift */
+  if (!isDragging) {
+    targetT += 0.018 * dt;
+  }
+
+  /* Smooth camera - slower, more elegant transitions */
+  camT += (targetT - camT) * 0.04;
+  camP += (targetP - camP) * 0.04;
+  updateCamera();
+
+  /* Billboard label & cards always face camera */
+  labelMesh.lookAt(camera.position);
+  cards.forEach(c => c.lookAt(camera.position));
+
+  /* Raycasting */
+  raycaster.setFromCamera(mouse, camera);
+
+  /* Sphere hover */
+  const sphereHits = raycaster.intersectObject(sphere);
+  if (sphereHits.length > 0 && !hoveredSphere) {
+    hoveredSphere = true;
+    document.body.style.cursor = 'pointer';
+    tooltipTag.textContent = 'Resume';
+    tooltipTitle.textContent = '刘子旭 · Event Producer';
+    tooltipCount.textContent = 'Click to view';
+    tooltip.classList.add('visible');
+  } else if (sphereHits.length === 0 && hoveredSphere) {
+    hoveredSphere = false;
+    if (!hoveredCard) document.body.style.cursor = 'default';
+    tooltip.classList.remove('visible');
+  }
+
+  /* Card hover */
+  const hits = raycaster.intersectObjects(cards);
+  if (hits.length > 0 && !hoveredSphere) {
+    const hit = hits[0].object;
+    if (hoveredCard !== hit) {
+      if (hoveredCard) {
+        hoveredCard.scale.set(1, 1, 1);
+        hoveredCard.material.emissive = new THREE.Color(0x000000);
+      }
+      hoveredCard = hit;
+      hoveredCard.scale.set(1.04, 1.04, 1.04);
+      hoveredCard.material.emissive = new THREE.Color(0x444444);
+      document.body.style.cursor = 'pointer';
+
+      const proj = hit.userData.project;
+      tooltipTag.textContent = 'Project';
+      tooltipTitle.textContent = proj.name;
+      tooltipCount.textContent = proj.count + (proj.count > 1 ? ' images' : ' image');
+      tooltip.classList.add('visible');
+    }
+  } else if (hits.length === 0) {
+    if (hoveredCard) {
+      hoveredCard.scale.set(1, 1, 1);
+      hoveredCard.material.emissive = new THREE.Color(0x000000);
+      hoveredCard = null;
+      if (!hoveredSphere) document.body.style.cursor = 'default';
+      tooltip.classList.remove('visible');
+    }
+  }
+
+  /* Tooltip follow mouse */
+  if (tooltip.classList.contains('visible')) {
+    let tx = mouseX + 18;
+    let ty = mouseY + 18;
+    if (tx + 280 > window.innerWidth) tx = mouseX - 290;
+    if (ty + 100 > window.innerHeight) ty = mouseY - 100;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+  }
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+} catch (err) {
+  showError('Init Error: ' + (err.stack || err.message));
+  document.getElementById('loading').classList.add('hidden');
+}
+</script>
+</body>
+</html>

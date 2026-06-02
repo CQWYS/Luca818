@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>刘子旭 · Event Production Portfolio</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    overflow: hidden;
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: #000000;
+    user-select: none;
+    -webkit-user-select: none;
+    letter-spacing: 0.06em;
+    word-spacing: 1px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    transition: opacity 0.8s ease;
+  }
+  #canvas-container.hidden { opacity: 0; pointer-events: none; }
+  canvas { display: block; }
+
+  /* Nav */
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 32px;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .nav.hidden { opacity: 0; }
+  .nav-name {
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: #000000;
+    pointer-events: auto;
+    cursor: pointer;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition: border-color 150ms linear;
+    padding-bottom: 2px;
+  }
+  .nav-name:hover { border-color: #000; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    z-index: 20;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(0,0,0,0.06);
+    padding: 16px 22px;
+    border-radius: 2px;
+    max-width: 300px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    letter-spacing: 0.08em;
+  }
+  .tooltip.visible { opacity: 1; transform: translateY(0); }
+  .tooltip-tag {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(0,0,0,0.3);
+    margin-bottom: 6px;
+    font-weight: 400;
+  }
+  .tooltip-title {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    font-weight: 500;
+    color: #000000;
+    letter-spacing: 0.06em;
+  }
+  .tooltip-count {
+    font-size: 0.65rem;
+    color: rgba(0,0,0,0.3);
+    margin-top: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Loading */
+  .loading {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1s ease;
+  }
+  .loading.hidden { opacity: 0; pointer-events: none; }
+  .loading-ring {
+    width: 32px; height: 32px;
+    border: 1.5px solid rgba(0,0,0,0.06);
+    border-top-color: #000000;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 24px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.25);
+    font-weight: 400;
+  }
+
+  /* Hint */
+  .hint {
+    position: fixed;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    pointer-events: none;
+    font-size: 0.6rem;
+    color: rgba(0,0,0,0.18);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 2;
+    transition: opacity 0.6s ease;
+  }
+  .hint.hidden { opacity: 0; }
+
+  /* Project Detail View */
+  #detail-view {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: #ffffff;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+  #detail-view.active { opacity: 1; pointer-events: auto; }
+
+  .detail-header {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .detail-back {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: rgba(0,0,0,0.4);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.3s ease;
+    background: none;
+    border: none;
+    font-family: inherit;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 2px;
+  }
+  .detail-back:hover { color: #000; border-color: #000; }
+  .detail-back svg { width: 14px; height: 14px; }
+  .detail-info { text-align: right; }
+  .detail-title { font-size: 0.9rem; font-weight: 500; letter-spacing: 0.04em; margin-bottom: 4px; color: #000; }
+  .detail-meta { font-size: 0.6rem; color: rgba(0,0,0,0.3); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .detail-body {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 64px 32px 120px;
+  }
+  .detail-hero {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    border-radius: 2px;
+    margin-bottom: 56px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  }
+  .detail-section {
+    margin-bottom: 64px;
+  }
+  .detail-section h2 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #000;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    padding-bottom: 10px;
+  }
+  .detail-section p {
+    font-size: 0.95rem;
+    line-height: 2;
+    color: #333;
+    margin-bottom: 16px;
+    letter-spacing: 0.02em;
+  }
+  .detail-section strong { color: #000; font-weight: 600; }
+
+  .detail-gallery {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 40px;
+  }
+  .detail-gallery img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.6s ease, box-shadow 0.6s ease;
+  }
+  .detail-gallery img:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+  }
+  @media (max-width: 640px) {
+    .detail-gallery { grid-template-columns: 1fr; }
+    .detail-header { padding: 14px 20px; }
+    .nav { padding: 14px 20px; }
+  }
+
+  /* About / Resume Overlay */
+  #about-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(255,255,255,0.98);
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #about-overlay.active { opacity: 1; pointer-events: auto; }
+  .about-close {
+    position: fixed;
+    top: 28px; right: 32px;
+    z-index: 160;
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    color: rgba(0,0,0,0.35);
+    transition: all 0.3s ease;
+  }
+  .about-close:hover { border-color: rgba(0,0,0,0.3); color: #000; }
+  .about-content {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 120px 32px 100px;
+  }
+  .about-name {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+    color: #000;
+  }
+  .about-role {
+    font-size: 0.8rem;
+    color: rgba(0,0,0,0.35);
+    margin-bottom: 40px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .about-contact {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 56px;
+    font-size: 0.75rem;
+    color: rgba(0,0,0,0.45);
+    flex-wrap: wrap;
+    letter-spacing: 0.06em;
+  }
+  .about-section { margin-bottom: 48px; }
+  .about-section h3 {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: rgba(0,0,0,0.3);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    font-weight: 500;
+  }
+  .about-item { margin-bottom: 24px; }
+  .about-item h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #000;
+    letter-spacing: 0.03em;
+  }
+  .about-item .about-meta {
+    font-size: 0.7rem;
+    color: rgba(0,0,0,0.3);
+    margin-bottom: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .about-item p {
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: #444;
+    letter-spacing: 0.02em;
+  }
+  .about-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .about-skills span {
+    font-size: 0.72rem;
+    padding: 7px 16px;
+    background: rgba(0,0,0,0.03);
+    border-radius: 2px;
+    color: #444;
+    letter-spacing: 0.04em;
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+
+  /* Lightbox */
+  #lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  #lightbox.active { opacity: 1; pointer-events: auto; }
+  #lightbox img {
+    max-width: 92vw;
+    max-height: 90vh;
+    object-fit: contain;
+    transform: scale(0.96);
+    transition: transform 0.4s cubic-bezier(0.23,1,0.32,1);
+  }
+  #lightbox.active img { transform: scale(1); }
+  .lb-close {
+    position: absolute;
+    top: 20px; right: 24px;
+    width: 44px; height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    font-size: 1.4rem;
+    transition: all 0.3s ease;
+  }
+  .lb-close:hover { color: #fff; background: rgba(255,255,255,0.15); }
+  .lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px; height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+  }
+  .lb-nav:hover { color: #fff; background: rgba(255,255,255,0.12); }
+  .lb-prev { left: 16px; }
+  .lb-next { right: 16px; }
+  .lb-counter {
+    position: absolute;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="loading-ring"></div>
+  <div class="loading-text">Loading Portfolio</div>
+</div>
+
+<div class="nav" id="main-nav">
+  <div class="nav-name" onclick="showAbout()">刘子旭 · Luca</div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-tag" id="tooltip-tag"></div>
+  <div class="tooltip-title" id="tooltip-title"></div>
+  <div class="tooltip-count" id="tooltip-count"></div>
+</div>
+
+<div class="hint" id="hint">
+  Drag to orbit &nbsp;&middot;&nbsp; Scroll to zoom &nbsp;&middot;&nbsp; Click to explore
+</div>
+
+<div id="error-display" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:999; background:rgba(30,30,30,0.96); color:#fff; padding:28px 36px; border-radius:2px; font-size:0.8rem; line-height:1.7; max-width:70vw; display:none; white-space:pre-wrap; box-shadow:0 8px 40px rgba(0,0,0,0.15); letter-spacing:0.04em;"></div>
+
+<div id="canvas-container"></div>
+
+<div id="detail-view">
+  <div class="detail-header">
+    <button class="detail-back" onclick="backToSpace()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Space
+    </button>
+    <div class="detail-info">
+      <div class="detail-title" id="detail-title"></div>
+      <div class="detail-meta" id="detail-meta"></div>
+    </div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<div id="about-overlay">
+  <div class="about-close" onclick="hideAbout()">&times;</div>
+  <div class="about-content">
+    <div class="about-name">刘子旭</div>
+    <div class="about-role">Luca · Event Producer · Hong Kong</div>
+    <div class="about-contact">
+      <span>+86 16600208184</span>
+      <span>16600208184@163.com</span>
+      <span>香港</span>
+    </div>
+
+    <div class="about-section">
+      <h3>Profile</h3>
+      <p style="font-size:0.9rem;line-height:1.8;color:#555;">
+        专注于大型会务执行与活动策划，具备从前期策划、供应商对接、现场执行到后期复盘的全流程项目管理经验。
+        擅长处理高规格、高复杂度的企业活动，包括颁奖典礼、高峰论坛、交响音乐会、新车发布会及品牌晚宴等多元场景。
+        在高压环境下保持精准执行，注重细节与体验，致力于为客户创造超越预期的活动价值。
+      </p>
+    </div>
+
+    <div class="about-section">
+      <h3>Work Experience</h3>
+      <div class="about-item">
+        <h4>Real Media (HK) · Event Producer</h4>
+        <div class="about-meta">2024.10 — 2025.12 · Hong Kong</div>
+        <p>负责品牌线下活动、发布会、快闪活动、城市巡展、企业沙龙全案策划执行。独立完成活动创意方案、策划案、流程脚本、预算拆解、执行排期撰写与落地。统筹现场对接品牌方、甲方流程管控、物料供应商、搭建商、主持人/演艺、媒体资源，把控活动全流程进度与落地效果，保障活动高标准顺利落地，处理突发问题及应急处理。</p>
+      </div>
+      <div class="about-item">
+        <h4>中国文字博物馆 · 新媒体运营</h4>
+        <div class="about-meta">2022.9 — 2024.6</div>
+        <p>负责博物馆品牌宣传、新媒体矩阵运营与内容全案制作，含摄影、视频剪辑、后期统筹。管理摄影与后期制作团队，制定视觉标准，提升内容产出效率与传播质量。策划执行多场公众讲座、文化推广活动，强化馆方品牌影响力与公众参与度。依据数据反馈优化传播策略，提升线上曝光与线下活动到场率。</p>
+      </div>
+      <div class="about-item">
+        <h4>Ogilvy · Creative Intern</h4>
+        <div class="about-meta">2020.2 — 2020.6 · Beijing</div>
+        <p>参与创意头脑风暴，协助确定品牌广告创意方向，搜集整理行业优质创意案例，搭建项目素材库。撰写海报文案、社媒文案、短视频脚本并校对润色，协助完成平面视觉排版、物料设计与画面优化。跟进创意方案修改，对接各部门推进项目进度。熟悉4A广告创作流程，配合完成各类宣传物料落地。</p>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h3>Education</h3>
+      <div class="about-item">
+        <h4>岭南大学 · 艺术与文化遗产管理（数字未来方向）</h4>
+        <div class="about-meta">2024 — 2025 · 硕士研究生</div>
+      </div>
+      <div class="about-item">
+        <h4>南开大学 · 视觉传达设计</h4>
+        <div class="about-meta">2017 — 2021 · 本科</div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h3>Awards & Honors</h3>
+      <div class="about-item">
+        <p style="font-size:0.85rem;line-height:1.75;color:#555;">
+          靳埭强设计奖 2018 · Hiiibrand Awards 2020 · 全国大学生广告艺术大赛 2020 · GDC设计奖 2021 · 白金创意国际大学生平面设计大赛 2019 · 乡村美学顾问（河南安阳）2024
+        </p>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h3>Skills</h3>
+      <div class="about-skills">
+        <span>活动策划及新媒体全流程运营</span>
+        <span>普通话一乙</span>
+        <span>英语流利</span>
+        <span>AOW潜水员</span>
+        <span>CAAC民用无人机机长</span>
+        <span>基础编程（Arduino，TD）</span>
+        <span>Adobe全家桶</span>
+        <span>Windows全家桶</span>
+        <span>计算机二级</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox">
+  <div class="lb-close" onclick="closeLightbox()">&times;</div>
+  <div class="lb-nav lb-prev" onclick="lbPrev()">&#8249;</div>
+  <img id="lightbox-img" src="" alt="">
+  <div class="lb-nav lb-next" onclick="lbNext()">&#8250;</div>
+  <div class="lb-counter" id="lb-counter"></div>
+</div>
+
+<script src="data.js"></script>
+<script type="module">
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+
+/* ========== PROJECT COPY DATA ========== */
+const PROJECT_COPY = {
+  "p01": {
+    overview: "「紫荊花開」關愛計畫啟動儀式是由在港中資機構聯合發起的社會公益品牌活動，旨在通過政企協作模式，凝聚政府、企業與社會組織三方力量，系統化推動弱勢群體關愛事業的可持續發展。本項目涉及政府公共事務（GR）層面的多方協調，包括與香港特區政府相關部門、中聯辦及社會福利機構的溝通對接。活動規模約150人，出席嘉賓涵蓋政府官員、企業高管、NGO代表及主流媒體，具備高度的公共傳播價值與品牌聲譽效應。作為項目Account Executive（AE），我需同時管理客戶預期、政府禮賓規範與媒體傳播節奏，對綜合統籌能力提出極高要求。",
+    contribution: "我以項目AE及現場總控的雙重身份全流程介入本項目。前期商務拓展（BD）階段，我主導了與主辦方的多輪需求對接會議，梳理出政府關係維護、媒體傳播策略與公益品牌塑造三大核心訴求，並據此撰寫了涵蓋創意概念、流程腳本、預算拆解及風險預控方案的全案策劃書。在政府關係（GR）維度，我獨立負責政府嘉賓的邀請跟進、座位禮賓排序及動線規劃，確保符合政務活動的禮儀規範與安全標準。現場執行中，我建立了「總控台-分區負責人-機動組」的三級指揮體系，精準把控啟動儀式、捐贈環節及媒體採訪區的時間節點，確保各環節無縫銜接。針對突發天氣變化，我啟動了預先演練過的室內備選方案，保障了活動順利進行。活動結束後，我撰寫了包含傳播數據分析、嘉賓反饋整理及優化建議的完整項目復盤報告，獲得主辦方高度評價。"
+  },
+  "p02": {
+    overview: "2024華為港澳合作伙伴大會是華為面向港澳地區渠道生態夥伴的年度戰略級盛會，以「共創數智未來」為主題，匯聚超過500位合作伙伴、行業客戶及技術專家。本項目屬於典型的大型企業商務拓展（BD）與渠道資源整合場景，通過主論壇、分論壇、解決方案展覽及商務洽談等多元環節，全面展示華為在港澳市場的戰略布局與生態成果。活動現場設有大型舞台、沉浸式展區及多個分會場，對流程管控、供應商管理與多線程執行提出了極高要求。",
+    contribution: "我在本次大會中擔任協同執行的核心成員，深度參與了從商務對接到現場交付的全流程。前期BD階段，我協助進行了渠道夥伴的邀請追蹤與分級管理，建立了「戰略夥伴-VIP夥伴-普通夥伴」三級接待方案，確保不同層級客戶的差異化體驗。在需求對接方面，我參與了與華為市場部、產品部及外部代理商的多輪創意腦暴與方案修訂，輸出了精確到分鐘的流程腳本與物料清單。場地管理方面，我參與了場地勘測與搭建方案審核，確保舞台結構、展區布局與人流動線符合安全規範與品牌視覺標準。活動當日，我駐守主論壇控台區域，實時監控議程進度，協調主持人、演講嘉賓及AV技術團隊的無縫配合，並針對展區人流高峰制定了分流引導方案。我還統籌了500餘位嘉賓的簽到註冊、分區分座及茶歇安排，確保了每位來賓的參會體驗均達到華為品牌的高標準。"
+  },
+  "p03": {
+    overview: "2025第二屆香港世界青年科學大會是一場國際級學術會議，由香港特區政府及多家國際科研機構聯合支持，邀請了全球頂尖青年科學家、諾貝爾獎得主及政策制定者共襄盛舉。大會為期三天，涵蓋開幕式、主論壇、平行分論壇、青年科學家圓桌對話及科技成果展覽等環節，參會者來自30多個國家和地區。本項目具備高度的政府公共事務（GR）與國際政府關係屬性，涉及與多國領事館、香港創新科技署及國際學術組織的禮賓協調。活動對同聲傳譯、國際嘉賓接待及學術議程的精準把控提出了極高標準。",
+    contribution: "我以項目統籌負責人的身份主導了這場高規格學術會議的全流程會務執行。在國際政府關係（GR）與公共事務維度，我建立了「一對一」貴賓接待機制，獨立負責多國嘉賓的行程對接、酒店安排、禮賓車輛調度及會場動線設計，並與香港創新科技署保持實時溝通，確保政府層面的活動合規性。技術籌備方面，我提前三天完成了全館音頻測試、同傳設備備份方案及六個平行分會場的獨立音視頻系統調試。平行分論壇期間，我制定了詳細的轉場時間表與「分會場負責人」機制，確保六個分會場同時運轉而互不干擾。開幕式與閉幕式的舞台流程由我親手編排，精確到秒的燈光切換與背景音樂配合，最終實現了三天議程零失誤的卓越表現，獲得了主辦方與政府部門的聯合書面表揚。"
+  },
+  "p04": {
+    overview: "2025華為港澳合作夥伴頒獎晚宴是華為年度最高規格的渠道答謝盛典之一，以「致敬卓越·攜手共進」為主題，旨在通過高端社交場景深化與核心生態夥伴的戰略合作關係。晚宴選址於維港景觀餐廳，現場可容納300餘位嘉賓，整體氛圍既要體現華為的科技基因，又要營造出溫馨而隆重的商務社交場景。本項目屬於典型的大客戶關係維護（AE）與商務拓展（BD）場景，出席嘉賓涵蓋華為高層、核心渠道夥伴、行業意見領袖及政府關係代表。活動包含紅地毯入場、年度回顧視頻、多輪頒獎、文藝表演及自由交流等環節。",
+    contribution: "我以項目AE及創意總監的雙重角色負責晚宴的全流程創意策劃與落地執行。前期客戶關係維護階段，我與華為港澳企業業務部進行了超過十輪需求對接，深入理解了其核心渠道夥伴的畫像與訴求，並據此設計了「年度故事」敘事視頻與頒獎詞穿插的節奏，讓每一輪頒獎都既有儀式感又有情感溫度。在供應商統籌方面，我獨立完成了場地選址考察、菜單設計審核、舞美燈光方案的三輪修改確認及演藝團隊的篩選談判。針對獲獎者的後台動線，我規劃了獨立的準備區與上台通道，避免交叉干擾。晚宴現場的燈光氛圍轉換由我實時指揮AV團隊執行，從莊重的頒獎模式到輕鬆的社交模式無縫切換。我還設計了「戰略夥伴專屬交流時段」，為華為高層與核心夥伴創造了一對一深度對話的場景，強化了商務關係的粘性。活動最終獲得了客戶與來賓的一致讚譽，並直接促成了次年合作協議的續簽意向。"
+  },
+  "p05": {
+    overview: "2025華為數據通信創新峰會聚焦AI時代的網絡基礎設施演進，匯聚了華為技術專家、行業客戶及生態夥伴。本項目的目標受眾為企業CTO、網絡架構師及渠道決策者，屬於典型的B2B技術營銷與大客戶轉化場景。峰會以產品發布、技術演講及場景化demo體驗為核心內容，活動現場設有主舞台、產品體驗區及商務洽談區，要求技術內容的專業深度與商務場景的無縫融合。作為面向大型企業決策者的高端峰會，本項目對內容策劃的邏輯性、產品演示的穩定性及商務對接的效率提出了極高標準。",
+    contribution: "我以項目PM及現場執行負責人的身份統籌了峰會的議程管理與全流程落地。在客戶關係維護（AE）維度，我提前與華為數通產品線的產品經理進行了深度需求對接，梳理出「技術權威性+商務轉化力」的雙核心訴求，並據此設計了議程節奏與互動環節。產品發布環節的demo展示與舞台轉場協調是核心難點，我提前與技術團隊進行了三輪全流程彩排，模擬了設備故障、網絡延遲等突發情況的應對方案，並建立了A/B設備熱備份機制。在商務拓展（BD）層面，我統籌了產品體驗區的動線設計，通過合理的展位排布與引導標識，提升了嘉賓的體驗效率與商務洽談轉化率。我還管理了直播團隊、攝影攝像團隊及速記團隊的協作，讓線上觀眾與線下嘉賓同步獲得高質量內容。活動後，我整理了客戶反饋與商務線索，形成了包含商機追蹤建議的項目復盤報告，為華為數通產品線的後續市場活動提供了數據支撐。"
+  },
+  "p06": {
+    overview: "2025京蒙港澳臺青少年音樂藝術嘉年華音樂會（香港站）是一場跨越兩岸四地的青少年文化交流盛會，由國家文旅部及香港特區政府相關部門支持，以音樂為橋樑展現新生代藝術風采。音樂會匯集了來自北京、內蒙古、香港、澳門及台灣的青少年藝術團體，演出形式涵蓋交響樂、民族器樂、合唱及舞蹈。本項目具備高度的政府公共事務（GR）屬性，涉及與兩岸四地政府文化部門、教育機構及青年組織的多方協調。活動在香港主流演藝場館舉行，現場可容納800餘名觀眾，對大型演出的藝術呈現、政府禮賓規範及跨地域團隊管理提出了極高要求。",
+    contribution: "我以項目統籌負責人的身份主導了香港站音樂會的現場執行與演出統籌。在政府關係（GR）維度，我獨立負責了與香港民政事務局、康文署及兩岸四地政府文化部門的對接，完成了活動報批、場地許可及官員接待方案的制定。前期與五個地區的演出團隊進行了多輪遠程與現場溝通，協調了排練時間表、節目順序及舞台技術要求，建立了「一地一聯絡人」的跨地域溝通機制。針對多民族樂器的特殊音響需求，我協助音響工程師完成了場地聲學測試與設備調配。現場執行中，我制定了詳細的演員動線圖與後台三區管理機制，確保來自不同地區的300餘名青少年演員在後台的有序候場與快速換裝。演出當晚，我駐守舞台監督位，精準把控每一個節目的上下場時機，並與政府禮賓組保持實時對講溝通，確保了官員致辭與演出流程的精準銜接。整場音樂會的藝術呈現達到專業水準，獲得了政府部門與主辦方的高度評價。"
+  },
+  "p07": {
+    overview: "2025醫院管理局研討大會期間，華為展台以「智慧醫療·科技賦能」為主題，面向醫管局管理層、醫護人員及醫療信息化決策者展示華為智慧醫療解決方案。本項目是典型的政企合作場景，客戶端涉及香港政府公立醫療體系（醫管局）這一大型政府機構，對供應商的資質審查、合規標準及專業形象提出了極高門檻。展台面積超過200平方米，包含產品演示區、互動體驗區、專家咨詢區及商務洽談區。大會為期兩天，日均人流量超過3000人次，對展台運營效率、客流管理及商務線索轉化提出了系統性挑戰。",
+    contribution: "我以展台運營總監的身份負責華為展台的整體運營與現場管理。在前期商務拓展（BD）與政企對接階段，我與醫管局的採購及活動部門進行了多輪溝通，明確了展台內容的合規邊界與技術呈現標準，並協助華為醫療團隊完成了供應商資質文件的準備。展台搭建階段，我全程監工了結構設計審核、展示設備的調試安裝及網絡環境的獨立部署。針對醫療行業的專業性，我組織了講解團隊的產品知識強化培訓與角色扮演演練，確保每位講解員都能準確傳達技術方案的臨床價值。我還設計了「掃碼預約專家咨詢」的互動機制，有效分流了高峰時段的客流，提升了商務洽談的質量。兩天展會期間，我實時監控各區域運營狀態，及時處理了兩次設備過熱預警，並建立了每小時一次的客流數據上報機制。活動後，我整理了超過200條商務線索並按醫院類型分級，形成了標準化的客戶跟進建議，為華為醫療業務在港拓展提供了高質量的銷售漏斗。"
+  },
+  "p08": {
+    overview: "2026華為港澳合作伙伴大會延續並升華了年度盛會的品牌效應，進一步深化了華為與港澳生態夥伴的戰略合作關係。本屆大會在規模上再創新高，參會人數突破600人，新增「創新實驗室」體驗區與「夥伴成功故事」分享環節，客戶對活動的創意性與商務轉化價值提出了更高期望。作為連續第二年承接該項目的執行團隊，我們需要在繼承成熟流程的基礎上進行系統性創新，同時確保大型企業活動的全流程項目管理標準不降。活動涉及華為多條產品線、港澳兩地渠道夥伴及政府關係代表的協同，是典型的多方利益相關者管理場景。",
+    contribution: "作為連續第二年承接該項目的執行核心，我在繼承前一年成熟流程的基礎上進行了系統性優化。在商務拓展（BD）與客戶關係維護（AE）維度，我重新設計了嘉賓註冊與簽到流程，引入二維碼自助簽到系統與「VIP快速通道」機制，將平均簽到時間縮短了40%，顯著提升了大會的專業第一印象。針對新增的「創新實驗室」體驗區，我制定了專項運營手冊，培訓了15名現場引導員，並設計了「技術護照」打卡互動，提升了夥伴的參與深度與停留時長。分論壇的場地動線經過我的重新規劃，有效減少了轉場時的擁堵。我還建立了「客戶滿意度實時收集」機制，在茶歇區設置了反饋二維碼，為活動的實時調整提供了數據依據。通過詳盡的復盤會議與數據分析，本屆大會在來賓滿意度調研中獲得了92%的高分，較去年提升7個百分點，並直接促成了三個新渠道夥伴的簽約意向。"
+  },
+  "p09": {
+    overview: "2026華為港澳合作伙伴大會頒獎晚宴在維港璀璨夜景的映襯下舉行，以「攜手共進·共贏未來」為主題，打造了更具沉浸感的頒獎體驗。本屆晚宴首次引入全息投影技術用於年度回顧視頻的呈現，並增設了「年度最佳生態夥伴」特別獎項，進一步提升了活動的商務儀式感與品牌傳播力。現場嘉賓規模350人，包含華為高層、核心渠道夥伴及行業意見領袖，是華為港澳地區最高規格的商務社交場景之一。本項目對高端活動的創意策劃、技術融合呈現及大客戶關係維護提出了全方位的挑戰。",
+    contribution: "我以項目AE及創意總監的身份主導了本屆晚宴的全案執行，首次挑戰全息投影與現場燈光的融合呈現。前期，我與全息技術供應商進行了五輪技術對接與商務談判，確認了投影角度、亮度匹配及現場燈光的協調方案，並建立了設備故障的A/B備份機制。在客戶關係維護方面，我設計了「嘉賓互動式頒獎」新模式，讓頒獎嘉賓與獲獎者有更多的台上互動時間，強化了情感連結與品牌記憶點。全息視頻播放環節的燈光漸暗與復亮節奏由我精確編排，確保了視覺轉換的流暢性。晚宴現場我擔任總控，實時協調廚房出菜節奏與台上節目進度，並建立了「客戶緊急需求響應」機制，確保了商務環節與餐飲體驗的高度同步。我還策劃了「戰略夥伴閉門交流酒會」作為晚宴後的增值環節，為華為高層與核心夥伴創造了非正式的深度對話場景，直接促成了兩項戰略合作備忘錄的簽署。"
+  },
+  "p10": {
+    overview: "2026華為香港科技周是一系列面向公眾與行業客戶的科技體驗盛會，為期五天，涵蓋產品首發、技術沙龍、開發者工作坊、創新成果路演及公眾開放日等多元活動。本項目是華為在港澳地區規模最大、週期最長的整合營銷活動，涉及多條產品線、多個場地及多類受眾的協同運營。活動在香港多個場地同步開展，包括會展中心、華為旗艦店及合作高校，面對高頻次的場地切換與多線並行任務，項目管理複雜度極高。作為大型企業的整合營銷項目，科技周對資源統籌、供應商管理及商務轉化效率提出了系統性挑戰。",
+    contribution: "我以項目總監的身份統籌了科技周全週期的多場次活動管理，建立了「總控中心-分場負責人-機動支援」的三級指揮體系。我制定了標準化的活動執行清單（含135項檢查點），確保每場活動的物料、人員、設備均按時到位。在商務拓展（BD）層面，我協調了華為與三家合作高校、兩家商業地產的場地租賃談判與資源置換，節省了約15%的場地成本。針對公眾開放日的大人流場景，我設計了分時段預約機制與現場分流路線，日均接待量控制在安全閾值內，並建立了與香港警務處的聯動機制以應對突發情況。五天活動期間，我每日召開晨會復盤前日問題並調整當日方案，建立了「2小時響應」的問題升級機制。我還統籌了社交媒體實時內容的製作與發布，科技周期間相關話題的社交媒體曝光量突破300萬次。最終實現了科技周期间零安全事故、零重大客訴的卓越運營表現，並為華為積累了超過5000條高質量潛客線索。"
+  },
+  "p11": {
+    overview: "2026年中資企業新春酒會是中資企業協會的年度聯誼活動，匯聚了在港200餘位中資企業高層代表。本項目具備明顯的半官方屬性與政府公共事務（GR）特徵，協會本身與香港特區政府及中聯辦保持緊密聯繫，活動的禮賓規格與政治敏感性要求極高。活動以「同心築夢·共賀新春」為主題，將傳統春節元素與現代商務社交巧妙融合。場地選坐落於中環的金融俱樂部，現場設有主舞台、buffet區、合影區及自由交流區，對高端商務社交場景的氛圍營造與政府關係維護提出了綜合性要求。",
+    contribution: "我以項目AE及政府關係協調員的雙重角色負責新春酒會的氛圍營造與流程執行。前期，我與中資企業協會秘書處進行了多輪需求對接，梳理出「政府關係維護+會員企業服務+品牌傳播」的三重目標，並據此設計了中式元素的裝飾方案與傳統節目的篩選標準。在政府關係（GR）維度，我獨立負責了政府嘉賓的邀請確認、職務排序核對及分級接待方案的制定，確保了中聯辦代表、特區政府官員及企業高管的差異化尊貴體驗。我設計了「新年願望牆」互動裝置與分級抽獎環節，有效活躍了現場氣氛，並為協會收集了會員企業的新年訴求。酒會的社交動線經過我的精心規劃，設置了「金融圈」「地產圈」「科技圈」三個主題交流區，促進了不同行業企業間的深度交流與商務撮合。活動後，我整理了嘉賓反饋並形成了「會員訴求分析報告」，提交協會秘書處作為年度服務規劃的參考，獲得了協會領導的書面表揚。"
+  },
+  "p12": {
+    overview: "AI+教育變革中國移動香港教育行業生態發佈會是中國移動香港面向教育領域的重要戰略發布，展示了5G+AI賦能智慧教育的全場景解決方案。中國移動香港作為大型央企在港子公司，本項目具備明顯的政企合作屬性，發佈會邀請了教育局官員、中小學校長、教育機構代表及教育科技從業者，現場規模約200人。活動包含戰略演講、產品演示、合作簽約及媒體問答等環節，對大型央企的品牌調性把控、政府關係維護及教育行業渠道拓展提出了系統性要求。",
+    contribution: "我以項目PM及現場執行總監的身份負責這場發布會的整體執行統籌。前期，我與中國移動香港的政企客戶部進行了深度需求對接，梳理出「政府背書+行業影響力+渠道轉化」的三重目標，並據此輸出了全案策劃書與風險預控方案。在政府關係（GR）維度，我協助完成了教育局官員的邀請跟進、座位禮賓安排及媒體採訪區的動線設計，確保了政府代表的出席體驗與發言節奏的精準銜接。發布環節的舞台效果由我協調燈光師設計了配合產品亮相的追光與氛圍燈光方案，並針對三位高管的演講製作了精確到秒的時間提示卡。我還獨立設計並搭建了媒體採訪區，包含了背景板、燈光組及採訪桌椅的標準化配置，並準備了演示設備的A/B備份方案，活動前完成了三次全鏈路切換演練。在商務拓展（BD）層面，我設計了「教育機構合作意向登記」互動環節，現場收集了近50家教育機構的合作意向，為中國移動香港的教育業務拓展提供了高質量的銷售線索。"
+  },
+  "p13": {
+    overview: "Ai+智算能力合作發佈會聚焦人工智能與智能計算領域的生態合作，邀請了產學研多方代表共同見證戰略合作協議的簽署。本項目是典型的政企學研多方協同場景，涉及大型科技企業、高校科研院所及政府支持單位的跨界合作。發佈會以「智算無界·共創未來」為主題，現場設有主舞台、簽約區、展示區及媒體區。活動的核心亮點是三輪戰略合作協議的現場簽署，對儀式流程的莊重性、時間精度及多方協調提出了極高要求，是檢驗大型企業公共事務與商務拓展綜合能力的標杆案例。",
+    contribution: "我以項目AE及儀式設計總監的身份負責發佈會的儀式設計與現場執行。前期，我與主辦方的戰略合作部、政府事務部及外部律所進行了多輪需求對接，梳理出「儀式莊重感+合作儀式感+媒體傳播力」的三重目標。針對三輪簽約環節，我設計了不同的舞台呈現方式：第一輪採用傳統簽約台形式，第二輪引入電子簽約屏，第三輪則採用多方同步簽署的創意布局，每一輪的背景視覺、音樂節奏及燈光效果都經過我的獨立編排。在政府關係（GR）與公共事務維度，我管理了現場貴賓的接待與引導，建立了「嘉賓管家」機制，確保每位簽約代表、政府代表及高校領導在正確的時間出現在正確的位置。我還協調了媒體區的拍攝角度與直播機位，確保了三輪簽約的最佳視覺呈現。發佈會的流程執行精確到秒，三輪簽約無縫銜接，獲得了合作雙方領導及政府代表的高度認可，並被主流媒體作為「產學研合作標杆案例」報導。"
+  },
+  "p14": {
+    overview: "TCL企業活動涵蓋了品牌發布、內部慶典及客戶答謝等多元場景，展現了TCL作為全球化科技品牌的創新實力與企業文化。我參與執行的TCL活動包括新品發佈會、渠道夥伴答謝宴及企業年會，單場規模從100人到500人不等，活動場地橫跨酒店宴會廳、戶外廣場及會展中心。本系列項目屬於典型的大型企業整合營銷活動，涉及品牌部、市場部、銷售部及外部代理商的多方協同，對Account Executive的跨部門溝通能力、供應商統籌能力及品牌調性把控能力提出了持續性挑戰。",
+    contribution: "在TCL的多場活動中，我承擔了項目執行的核心角色，建立了「需求對接-方案輸出-供應商招標-現場執行-項目復盤」的標準化流程。針對新品發佈會，我負責了產品亮相環節的舞台機械與燈光配合，協調了演講嘉賓的PPT統一規範與播放測試，並建立了「發布前72小時檢查清單」。渠道夥伴答謝宴中，我設計了「品牌歷程」沉浸式入場通道，讓嘉賓在步入宴會廳的過程中感受TCL的品牌故事，並策劃了「年度合作夥伴故事」視頻，強化了商務情感連結。企業年會環節，我統籌了員工節目彩排、頒獎流程及晚宴服務，確保正式環節與娛樂環節的自然過渡。在商務拓展（BD）層面，我協助進行了年度合作夥伴的邀請分級與接待差異化設計，並建立了「客戶滿意度即時收集」機制。每場活動我都建立了詳細的執行手冊與應急預案，保障了TCL品牌活動的一貫高水準，並為品牌部節省了約10%的單場執行成本。"
+  },
+  "p15": {
+    overview: "Zeekr 009新車發佈會是極氪品牌在香港的旗艦車型首發活動，以「奢華科技·重新定義MPV」為核心賣點，面向媒體、車主、潛在購車者及行業分析師進行全面展示。極氪作為吉利控股集團旗下的高端新能源品牌，本項目屬於典型的大型企業品牌營銷與大客戶轉化場景。活動選址於香港西九龍文化區，現場包含新車亮相舞台、靜態展示區、媒體試駕區及VIP尊享體驗區，對活動的高端定位、科技感呈現及客戶體驗管理提出了極高標準。",
+    contribution: "我以項目AE及創意總監的身份負責新車發佈會的全案執行。前期，我與極氪香港的品牌部進行了超過八輪需求對接，深入理解了「高端科技+奢華體驗」的品牌訴求，並輸出了涵蓋創意概念、流程腳本、預算拆解及風險預控的全案策劃書。核心亮點「新車揭幕」環節由我主導策劃，協調舞台機械團隊設計了旋轉升降平台與激光燈陣的配合方案，營造出戲劇化的亮相效果，並進行了五輪全流程彩排。媒體試駕區的流程設計由我獨立完成，包含了路線規劃、安全briefing及試駕資料包的製作，並建立了試駕車輛的A/B備份機制。針對VIP車主，我規劃了「極氪私享」專屬體驗動線，包含一對一產品講解、定制化茶歇及品牌周邊禮品。在商務拓展（BD）層面，我設計了「潛在購車者意向登記」互動機制，現場收集了近百條高意向線索，並協調銷售團隊進行了實時跟進。活動當日，我與車廠技術團隊緊密配合，確保了車輛展示與講解內容的每一個細節都達到極致水準，獲得了品牌方與媒體的一致好評。"
+  },
+  "p16": {
+    overview: "ZEEKR x首批車主專屬早餐聚會是一場高端客戶關係維護活動，以私密、尊貴的氛圍感謝首批支持品牌的車主。本項目屬於典型的大客戶關係管理（CRM）與高端客戶體驗設計場景，目標是通過情感連結深化品牌與核心用戶的長期關係，並通過口碑傳播帶動二次銷售。活動在香港半島酒店舉行，僅限30位首批車主及品牌高層參加。活動形式摒棄了傳統的產品推介，以輕鬆的美食社交為主，對高端服務細節的把控、客戶隱私保護及品牌調性的一致性提出了極高要求。",
+    contribution: "我以項目AE及客戶體驗設計師的身份負責這場高端客戶活動的精細化執行。前期，我與極氪的用戶運營團隊進行了深度需求對接，梳理出「情感連結+品牌認同+口碑種草」的三重目標。在供應商管理方面，我獨立完成了場地包場談判、早餐菜單的定制化設計（融合中西元素並標註過敏原信息）、桌花布置與座位安排，每一處細節都體現了對高端客戶的尊重。我設計了「品牌創始人面對面」環節，協調創始人的行程與發言提綱，並設置了車主提問的篩選與引導機制，確保了對話的價值輸出與品牌安全。活動後，我整理了車主反饋並形成「核心用戶洞察報告」提交品牌方，為後續的產品優化與客戶運營策略提供了寶貴的一線洞察，並促成了三位車主主動在社交媒體分享活動體驗，帶來了顯著的口碑傳播效應。"
+  },
+  "p17": {
+    overview: "第28屆北京·香港經濟合作研討洽談會是京港兩地政府與企業間的最高規格經貿交流活動，由北京市政府與香港特區政府聯合主辦，屬於典型的政府公共事務（GR）與大型企業商務拓展（BD）協同場景。活動涵蓋開幕式主論壇、專題分論壇、項目洽談會及簽約儀式等多元環節，參會嘉賓包括兩地政府官員、央企及港企負責人、投資機構代表及主流媒體。香港會場為期兩天，對政治規格與執行精度要求極高，是檢驗Account Executive跨部門協調與政府關係維護能力的標杆項目。",
+    contribution: "我以項目PM及客戶關係維護（AE）負責人的身份參與了這場大型經貿活動的全案執行。在商務拓展（BD）維度，我制定了「三級接待方案」：部級領導由專人專車接送並配備安保協調；企業高管安排商務洽談室與一對一翻譯；媒體代表設置獨立採訪區與新聞稿發放。在政府關係（GR）維護方面，我協助完成了兩地政府官員的座位禮賂安排與致辭順序核對，確保了政治規格的準確無誤。主論壇的座次安排經過我的三輪核對，建立了「職務排序-嘉賓確認-現場複核」的閉環機制。活動期間，我建立了實時溝通群組與應急響應機制，實現了突發情況的5分鐘響應與快速處置，保障了京港合作交流平台的順暢運轉，並獲得了兩地主辦方的書面肯定。"
+  },
+  "p18": {
+    overview: "第二屆GTI數智香江國際論壇是GTI國際組織在香港舉辦的年度技術論壇，聚焦5G-A、人工智能、算力網絡及全球產業協作等前沿議題，屬於典型的國際化大型企業技術營銷與商務拓展（BD）場景。論壇邀請了來自日韓、歐美及東南亞的電信運營商、設備商及科研院所代表，是一場真正意義上的國際化技術盛會。活動包含主旨演講、圓桌對話、技術展覽及閉門磋商等環節，對Account Executive的國際嘉賓管理、多語言服務及跨文化溝通能力提出了極高要求。",
+    contribution: "我以項目AE及國際嘉賓協調負責人的身份主導了論壇的現場執行與嘉賓接待協調。針對多語言環境，我提前一周完成了同傳設備的全館覆蓋測試，並準備了中英日韓四語議程手冊，確保了國際嘉賓的無障礙參會體驗。國際嘉賓的行程由我統一協調，處理了三次航班臨時變更導致的接站調整，建立了「航班動態實時監控」機制。在商務拓展（BD）層面，我設計了「技術護照」打卡互動，提升了觀眾在技術展覽區的參與度與停留時長。圓桌對話環節，我協助主持人準備了話題引導卡與時間提示器，並為每位嘉賓準備了行業背景速查卡，確保了對話的專業深度與節奏把控。整場論壇的國際嘉賓滿意度達到95%，並促成了三場跨國合作意向的初步達成。"
+  },
+  "p19": {
+    overview: "國際汽車及供應鏈（香港）高峰論壇匯聚了全球汽車產業鏈的頭部企業與專家，探討新能源汽車、智能駕駛、車聯網及供應鏈韌性等前沿議題，屬於典型的行業垂直領域大型企業商務拓展（BD）與客戶關係維護（AE）場景。論壇由香港貿易發展局支持，參會者涵蓋整車廠、Tier 1供應商、芯片企業、投資機構及行業協會代表。活動包含開幕式、主題演講、圓桌論壇、展覽展示及商務配對等環節，對行業資源整合與精準商務撮合能力提出了系統性要求。",
+    contribution: "我以項目PM及客戶關係維護（AE）負責人的身份統籌了這場汽車產業高峰論壇的全案執行。在商務拓展（BD）維度，我建立了「產業鏈圖譜」式邀請追蹤系統，確保整車、零部件、科技及金融各板塊的嘉賓比例均衡，並針對性地安排了上下游企業的商務洽談配對。演講PPT的統一規範管理由我負責，建立了模板庫與審核流程，保障了視覺呈現的專業一致性。圓桌論壇環節，我設計了「痛點-方案-趨勢」三段式討論框架，並為主持人準備了行業數據速查卡，確保了對話的專業深度與價值輸出。展覽區與商務洽談區的聯動運營由我策劃，通過「預約制配對+自由交流」的雙模式，促進了參會企業間的深度商務合作，現場達成合作意向20餘項。"
+  },
+  "p20": {
+    overview: "華為ICT大賽2025-2026澳門站頒獎典禮是華為面向全球高校學生的科技競賽在澳門地區的收官盛典，屬於典型的大型企業品牌營銷與人才生態建設場景。典禮表彰了在網絡、雲計算、創新賽道中脫穎而出的優秀學子，參會者包括獲獎學生、指導教師、高校代表、華為高管及澳門政府官員，現場規模約400人。活動對大型企業品牌調性把控、政府關係（GR）維護及青年人才社群運營提出了綜合性要求。",
+    contribution: "我以項目PM及客戶關係維護（AE）負責人的身份統籌了澳門站頒獎典禮的全流程執行。從場地搭建的監工驗收、舞台結構的荷載安全檢測，到頒獎環節的燈光音樂編排，我全程深度參與並建立了標準化的執行清單。針對獲獎學生的後台管理，我設計了「領獎準備區-候場區-舞台側台」的三區動線，確保80餘名獲獎學生的上台順序零差錯。在政府關係（GR）維度，我協助完成了澳門政府官員的接待安排與致辭流程對接。典禮的直播推流由我協調澳門本地供應商與華為總部團隊對接，克服了跨境網絡延遲的技術挑戰，確保了內地與澳門雙向直播的穩定流暢。最終典禮以專業的水準與熱烈的氛圍圓滿落幕，獲得了澳門教育及青年發展局的肯定。"
+  },
+  "p21": {
+    overview: "華為ICT大賽2025-2026香港站頒獎典禮是香港地區的年度科技人才表彰活動，屬於典型的大型企業品牌營銷與青年人才社群運營場景。典禮匯集了香港各大高校的優秀參賽學生與指導老師，以「青春代碼·未來可期」為主題，注入了更多年輕化、活力化的元素。活動現場設有互動拍照區、歷屆優秀項目展及求職對接區，超越了傳統頒獎典禮的單向輸出模式，對品牌年輕化傳播與人才轉化提出了創新性要求。",
+    contribution: "我以項目AE及創意總監的身份主導了香港站頒獎典禮的全案策劃與執行。針對香港本地高校的特色，我設計了「校園快閃預熱+典禮主會場」的雙軌傳播策略，提升了活動在高校社群中的曝光度與參與熱情。典禮流程中，我融入了學生才藝表演、導師寄語視頻及「代碼情書」創意環節，讓典禮既有學術莊重感，又不失青春氣息。在商務拓展（BD）與人才轉化維度，我設計了「求職對接區」，邀請了華為及合作企業的HR現場接收簡歷，實現了活動與人才招聘的無縫銜接。舞台視覺設計由我主導，採用了像素風與電路板紋理的融合設計語言。後台學生管理方面，我建立了微信溝通群與現場叫號系統，確保了200餘名學生的有序候場與領獎。"
+  },
+  "p22": {
+    overview: "華為Wi-Fi 7發布會澳門站是華為最新一代無線網絡產品在澳門的首次公開亮相，屬於典型的大型企業產品發布與渠道商務拓展（BD）場景。發布會面向企業客戶、渠道夥伴及酒店/教育/醫療等垂直行業用戶，以「快人一步·智連未來」為主題，核心賣點包括超高吞吐量、極低時延及強大的抗干擾能力。活動包含產品發布、技術演講、場景化體驗及渠道政策解讀等環節，對產品營銷創意與渠道轉化效率提出了系統性要求。",
+    contribution: "我以項目AE及現場執行總監的身份負責這場產品發布會的全案執行。核心環節「Wi-Fi 7揭幕」由我策劃，設計了配合產品亮相的激光秀與環繞音效，以戲劇化的方式呈現技術突破，並進行了三次全流程彩排確保萬無一失。在商務拓展（BD）與渠道管理維度，我管理了現場產品體驗區的搭建，包含企業辦公、酒店客房、教育課堂及醫療監護四個場景化模擬空間，讓來賓身臨其境感受產品價值。渠道政策解讀環節，我協調演講嘉賓與速記團隊的配合，確保政策要點實時轉化為文字紀要供來賓留存。發布會當日客流量超出預期30%，我緊急啟動了備用座位與茶歇增配方案，並建立了「客戶緊急需求響應」機制，保障了來賓體驗與活動口碑。"
+  },
+  "p23": {
+    overview: "華為港澳之夜是華為面向港澳地區員工、客戶及合作伙伴的年度聯誼晚會，屬於典型的大型企業內部文化建設與外部客戶關係維護（AE）並重的綜合性活動。晚會以「同心同行·共創未來」為主題，在香港國際會議展覽中心舉行，規模超過800人，是華為在港澳地區規模最大的內部聯誼活動。節目形式涵蓋員工才藝、外部演藝、互動遊戲、幸運抽獎及高管致辭，對企業文化傳播與客戶情感連結提出了綜合性要求。",
+    contribution: "我以項目PM及創意總監的身份負責晚會的創意策劃與全程執行。在客戶關係維護（AE）維度，我從華為各部門徵集了20餘個員工才藝節目，經過三輪篩選與彩排，最終呈現出涵蓋歌唱、舞蹈、樂器及語言類節目的豐富陣容，展現了企業文化的多元活力。互動遊戲環節由我原創設計，融入了華為產品與企業文化元素，增強了員工的參與感與認同感。晚宴的社交動線經過我的精心規劃，設置了「行業圈」「技術圈」「朋友圈」三個主題交流區，促進了不同背景來賓的深度互動與商務撮合。晚會現場的抽獎環節由我獨立開發隨機算法並公證執行，確保了公平透明，贏得了全場的熱烈反響。"
+  },
+  "p24": {
+    overview: "香港中資大講堂之「財資論道」專題活動是一場面向中資企業財務資金管理層的專業講座，屬於典型的行業垂直領域知識分享與商務拓展（BD）場景。活動探討跨境金融、資金集中管理、匯率風險對沖及數字化轉型等議題，由中資企業協會主辦，邀請了香港金管局代表、跨國銀行財資專家及企業CFO進行分享，參會者約120人，均為中資企業財資部門負責人。活動對專業內容的深度、嘉賓的精準邀請及高端商務社交氛圍的營造提出了極高要求。",
+    contribution: "我以項目AE及內容策劃負責人的身份負責這場專題活動的組織與執行。針對財資管理的專業性與敏感性，我設計了封閉式的活動形式，嚴格控制了參會人員資質審核與簽到流程。講座資料的準備與分發由我統一管理，包含三位講師的PPT、行業白皮書及保密協議簽署，建立了「資料分級授權」機制。在商務拓展（BD）維度，我設計了「主題演講+圓桌對話+閉門研討」的三段式結構，並安排了專業財經背景的主持人把控節奏，促進了與會高管間的深度交流與商務合作意向的達成。活動後，我整理了與會高管的反饋建議並形成行業洞察報告，提交協會作為後續活動規劃與會員服務優化的參考。"
+  },
+  "p25": {
+    overview: "「翼馬當先·開放進取正當時」表彰大會暨文藝晚會活動是一場結合了年度表彰與文藝演出的綜合性企業活動，屬於典型的大型企業內部文化建設與員工關係管理場景。活動分為上下兩場：上半場為正式表彰大會，頒發年度優秀團隊、個人及創新獎項；下半場為文藝晚會，包含員工節目、外部演藝及互動環節。兩場活動風格迥異，對舞台轉換與流程銜接提出了極高挑戰，是檢驗項目管理（PM）綜合能力的典型場景。",
+    contribution: "我以項目PM及創意總監的身份負責這場雙主題活動的統籌執行。針對表彰大會到文藝晚會的風格轉換，我設計了「時光隧道」轉場方案：上半場結束後，觀眾在引導員的帶領下經過一條佈置有年度回顧影像的通道到達茶歇區，期間舞台團隊完成佈景切換。下半場開場以一段震撼的激光秀拉開，實現了情緒的無縫銜接。表彰環節的頒獎詞撰寫、獎杯核對及獲獎者動線管理由我全程把控，建立了「三核對」機制確保零失誤。文藝晚會的節目彩排我堅持了五輪聯排，確保了員工節目與專業演藝的同水準呈現。整場活動的項目管理（PM）執行獲得了企業董事會的特別表揚。"
+  },
+  "p26": {
+    overview: "營商座談會聚焦兩會政策解讀、延遲退休趨勢及AI時代的人才革命，屬於典型的政策解讀類高端商務活動與政府關係（GR）維護場景。活動邀請了政策專家、企業HR總監、法律顧問及AI行業從業者進行多維度探討，由香港中資企業協會主辦，面向在港中資企業管理層，參會規模約100人。座談會以「政策前瞻·企業應對」為主線，幫助與會者把握政策脈搏並制定應對策略，對內容的專業深度與嘉賓的精準匹配提出了極高要求。",
+    contribution: "我以項目AE及內容策劃負責人的身份負責座談會的議程設計與現場執行。針對政策類活動的專業深度，我設計了「宏觀解讀-微觀實操-自由問答」的三段式議程結構，確保內容既有高度又接地氣。我邀請了擁有政府智庫背景的主持人，並為其準備了詳細的嘉賓背景卡與話題引導提綱，建立了「嘉賓發言時間管理」機制。現場同傳設備與直播技術由我統籌管理，設置了中英雙語通道以滿足不同背景來賓的需求。針對AI人才革命這一熱門話題，我增設了「現場AI測評」互動環節，讓來賓親身體驗AI招聘工具，提升了活動的參與度與實用性，獲得了與會高管的高度評價。"
+  },
+  "p27": {
+    overview: "中國電信NaaS挑戰賽是一場面向開發者與企業客戶的技術競賽，屬於典型的技術驅動型商務拓展（BD）與品牌營銷場景。挑戰賽旨在推廣網絡即服務（NaaS）平台的開放能力與商業應用場景，包含初賽線上評審與決賽現場路演兩個階段，決賽日設有代碼展示、方案答辯、評委提問及頒獎典禮等環節。參賽隊伍來自內地及港澳地區的科技企業、高校研究團隊及獨立開發者，對賽事運營的專業性與品牌傳播的廣度提出了綜合性要求。",
+    contribution: "我以項目PM及賽事運營總監的身份負責挑戰賽的全流程管理。從參賽隊伍的簽到註冊、評審區的座位安排，到答辯流程的計時與提醒，我建立了標準化的賽事運營手冊，涵蓋了135項檢查點。針對技術競賽可能出現的設備故障，我協調技術團隊準備了「雙機熱備」方案，並安排了工程師現場待命，建立了「2分鐘響應」的技術保障機制。在品牌營銷維度，我設計了創意性的「代碼獎杯」，將獲獎團隊的優秀代碼片段鐫刻在亞克力獎杯上，賦予了獎項獨特的紀念意義與社交傳播價值。賽事全程由我進行照片直播與社交媒體實時更新，擴大了活動的行業影響力與品牌曝光度。"
+  },
+  "p28": {
+    overview: "中國電信（香港）ADC海纜投產發佈會是中國電信重大基礎設施項目的公開儀式，標誌著亞太直達海底光纜（ADC）在香港登陸並正式投入商業運營，屬於典型的大型央企政府關係（GR）與公共事務場景。發佈會邀請了香港特區政府代表、監管機構、行業客戶及主流媒體，具有高度的政治敏感性與行業影響力。活動包含投產啟動儀式、技術白皮書發布及媒體群訪等環節，對儀式設計的莊重性、政府關係維護的專業性及媒體傳播的精準性提出了極高要求。",
+    contribution: "我以項目AE及儀式設計總監的身份負責這場投產發佈會的儀式設計與全流程執行。核心環節「海纜投產啟動」由我創意策劃，設計了一個象徵「光脈衝穿越海洋」的啟動裝置：嘉賓按下啟動按鈕後，舞台地面的LED燈帶由香港向亞太各方向依次點亮，配合大屏上的海纜路由動畫，形成強烈的視覺衝擊與品牌記憶點。在政府關係（GR）維度，我制定了嚴格的政府嘉賓接待流程與安保動線方案，提前與場地保安團隊進行了聯合演練，確保了政治規格的準確無誤。媒體群訪環節我設置了分組輪訪機制，確保每家媒體都能獲得充分的採訪時間與素材。發佈會的全流程執行獲得了香港通訊事務管理局的肯定。"
+  },
+  "p29": {
+    overview: "中國科學院創新研究院相關活動聚焦基礎科學研究與技術創新的前沿探索，連結學術界與產業界的深度交流，屬於典型的學術機構品牌建設與產業轉化推動場景。活動形式包括學術研討會、成果轉化對接會、青年科學家沙龍及院士講座等，參會者以科研人員、技術轉移從業者及投資人為核心群體。活動對學術嚴謹性與產業實用性的平衡提出了獨特挑戰，對客戶關係維護（AE）在學術與產業兩個語境間的切換能力提出了極高要求。",
+    contribution: "我以項目AE及策劃支持負責人的身份參與了中國科學院創新研究院系列活動的策劃支持工作，協助進行了活動概念的梳理、目標受眾的分析及活動框架的初步設計。針對科研成果轉化的特殊性，我調研了國內成功的技術轉移案例，為活動的內容設計提供了行業參考。在商務拓展（BD）維度，我建立了完整的供應商資源庫與場地備選清單，涵蓋了學術會議、成果對接及高端沙龍等多種活動類型。雖然該項目因機構調整尚未進入大規模執行階段，但我撰寫的活動概念方案獲得了研究院籌備組的認可，為後續活動的落地奠定了堅實基礎。"
+  },
+  "p30": {
+    overview: "中國太平洋保險「樂行天下」暨慶祝中國H股上市15周年交響音樂會是一場高規格的文化藝術盛典，屬於典型的大型企業品牌文化建設與高端客戶關係維護（AE）場景。音樂會由知名交響樂團現場演奏，慶祝企業發展歷程中的重要里程碑，在香港文化中心音樂廳舉行，現場可容納1200名觀眾，是太保在港澳地區規模最大的品牌文化活動。演出曲目精心挑選，融合了中外經典與企業定製樂章，對藝術水準與執行精度的要求極高。",
+    contribution: "我以項目PM及現場執行總監的身份負責這場交響音樂會的全流程執行。面對音樂廳的嚴格聲學要求，我與樂團的舞台監督進行了四次技術對接，精確到每一首曲目的燈光轉換、舞台調度及麥克風的開關時機，建立了「曲目-燈光-音響」三聯動執行表。針對企業定製樂章的首演，我協調了作曲家、樂團指揮與音響工程師的聯合彩排，確保了新作品的完美呈現。在客戶關係維護（AE）維度，VIP嘉賓的接待方案由我獨立設計，包含了專屬休息室、藝術家見面環節及限量版節目冊，為高端客戶創造了尊貴的專屬體驗。音樂會當晚，我全程駐守後台控台，與舞台監督保持實時溝通，確保了整場慶典的藝術高度與執行精度。"
+  },
+  "p31": {
+    overview: "中企服務進社區電車免費乘車日是中資企業協會發起的社區公益活動，屬於典型的企業社會責任（CSR）與政府關係（GR）並重的公共事務場景。活動為香港市民提供免費電車乘坐服務，傳遞企業社會責任與社區關懷，覆蓋港島東區至西區的完整電車線路，持續一整天，預計服務市民超過5萬人次。活動包含主會場啟動儀式、沿線站點志願者服務及社交媒體互動傳播，對公益活動的組織動員能力與品牌傳播效果提出了綜合性要求。",
+    contribution: "我以項目PM及現場執行總監的身份負責這場社區公益活動的全流程執行與志願者管理。前期我設計了活動主視覺與宣傳物料，協調印刷供應商在三天內完成了5000份傳單、200件志願者背心及100面指引旗幟的製作，建立了「供應商並行作業」機制以確保時效。志願者培訓方面，我組織了兩次線下培訓，涵蓋服務禮儀、安全規範及應急處理，並建立了「站點長負責制」的志願者管理體系。活動當日，我在主會場協調了啟動儀式的流程，並通過微信群實時指揮分佈在30個站點的志願者團隊。我特別關注了長者與兒童的服務體驗，在繁忙站點增設了人工引導與愛心通道。活動的社交媒體傳播由我統籌，當日話題閱讀量突破50萬，有效提升了中資企業協會的公眾形象與社會影響力。"
+  },
+  "p32": {
+    overview: "中銀香港科技創新獎2024頒獎典禮是中銀香港年度最重要的科技創新表彰活動，屬於典型的金融機構品牌建設與商務拓展（BD）場景。典禮旨在鼓勵金融科技與數字化創新的優秀項目與人才，在香港會議展覽中心舉行，參會嘉賓包括中銀香港高層、監管機構代表、獲獎企業、科技從業者及主流媒體，規模約500人。典禮設有提名視頻展播、評審團介紹、多輪頒獎及獲獎項目展示等環節，對金融機構的專業調性與科技感的平衡呈現提出了極高要求。",
+    contribution: "我以項目PM及客戶關係維護（AE）負責人的身份主導了這場頒獎典禮的全案執行。從提名環節的流程設計、評審團的接待安排，到典禮當天的舞台呈現，我全程深度參與並建立了標準化的執行清單。舞台視覺設計由我主導，採用了「數字漣漪」為主題元素，通過LED地屏與背景屏的聯動，營造出兼具科技感與金融穩重感的視覺氛圍。頒獎流程方面，我建立了「三核對」機制：提名名單核對、獎杯銘文核對及上台順序核對，杜絕了任何可能的失誤。針對獲獎項目的展示，我設計了30秒精煉視頻與現場講解的結合模式，讓複雜的技術創新也能被非技術背景的嘉賓理解。典禮最終獲得了中銀香港管理層的高度評價，並被列為年度標杆活動。"
+  }
+};
+
+/* ========== ERROR HANDLING ========== */
+const errorDisplay = document.getElementById('error-display');
+function showError(msg) {
+  errorDisplay.style.display = 'block';
+  errorDisplay.textContent = msg;
+}
+window.addEventListener('error', (e) => {
+  showError('Runtime Error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  showError('Unhandled Promise: ' + e.reason);
+});
+
+try {
+/* ========== THREE.JS SCENE ========== */
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+scene.fog = new THREE.Fog(0xffffff, 100, 320);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+/* Lights - soft, gallery-like illumination on white */
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.82);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.55);
+dirLight.position.set(40, 60, 40);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(1024, 1024);
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.28);
+fillLight.position.set(-40, 25, -30);
+scene.add(fillLight);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.18);
+backLight.position.set(0, 15, -60);
+scene.add(backLight);
+
+/* Spherical layout parameters - generous spacing inspired by olafureliasson.net */
+const cardW = 20;
+const cardH = 15;
+const radius = 72;
+const flattenY = 0.38;
+const depthVariation = 16;
+
+const cards = [];
+const textureLoader = new THREE.TextureLoader();
+let loadedCount = 0;
+const totalProjects = PROJECTS.length;
+
+function checkAllLoaded() {
+  loadedCount++;
+  if (loadedCount >= totalProjects) {
+    document.getElementById('loading').classList.add('hidden');
+    setTimeout(() => { document.getElementById('hint').classList.add('hidden'); }, 6000);
+  }
+}
+
+PROJECTS.forEach((proj, i) => {
+  const geometry = new THREE.PlaneGeometry(cardW, cardH);
+  let material;
+
+  if (proj.cover) {
+    const tex = textureLoader.load(
+      'projects/' + proj.cover,
+      () => checkAllLoaded(),
+      undefined,
+      () => checkAllLoaded()
+    );
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    material = new THREE.MeshStandardMaterial({
+      map: tex,
+      side: THREE.DoubleSide,
+      roughness: 0.45,
+      metalness: 0.02,
+      color: 0xffffff
+    });
+  } else {
+    material = new THREE.MeshStandardMaterial({
+      color: 0xe8e8e8,
+      side: THREE.DoubleSide,
+      roughness: 0.45
+    });
+    checkAllLoaded();
+  }
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.userData = { project: proj, originalScale: 1 };
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+
+  /* Fibonacci sphere distribution with depth layering for spatial gallery feel */
+  const phi = Math.acos(1 - 2 * (i + 0.5) / totalProjects);
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+  const depthOffset = Math.sin(i * 2.3 + 1.0) * depthVariation * 0.5;
+  const r = radius + depthOffset;
+
+  const x = r * Math.sin(phi) * Math.cos(theta);
+  const y = r * Math.cos(phi) * flattenY;
+  const z = r * Math.sin(phi) * Math.sin(theta);
+
+  mesh.position.set(x, y, z);
+  scene.add(mesh);
+  cards.push(mesh);
+});
+
+/* Central sphere - minimal dark accent */
+const sphereGeo = new THREE.SphereGeometry(2.8, 64, 64);
+const sphereMat = new THREE.MeshStandardMaterial({
+  color: 0x0a0a0a,
+  roughness: 0.35,
+  metalness: 0.4
+});
+const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+sphere.position.set(0, 0, 0);
+sphere.castShadow = true;
+scene.add(sphere);
+
+/* "I'm Luca" billboard label - minimal typographic accent */
+function createLabelTexture() {
+  const cvs = document.createElement('canvas');
+  cvs.width = 512;
+  cvs.height = 128;
+  const ctx = cvs.getContext('2d');
+  ctx.clearRect(0, 0, 512, 128);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '400 48px -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = '4px';
+  ctx.fillText("I'm Luca", 256, 64);
+  return new THREE.CanvasTexture(cvs);
+}
+
+const labelTex = createLabelTexture();
+labelTex.minFilter = THREE.LinearFilter;
+const labelGeo = new THREE.PlaneGeometry(5, 1.25);
+const labelMat = new THREE.MeshBasicMaterial({
+  map: labelTex,
+  transparent: true,
+  opacity: 0.92,
+  depthTest: false,
+  side: THREE.DoubleSide
+});
+const labelMesh = new THREE.Mesh(labelGeo, labelMat);
+labelMesh.position.set(0, 0, 2.4);
+labelMesh.renderOrder = 10;
+labelMesh.raycast = () => {};
+scene.add(labelMesh);
+
+/* Camera orbit - wider view for spacious gallery feel */
+let camR = 115;
+let camT = 0;
+let camP = Math.PI / 2.15;
+let targetT = 0;
+let targetP = Math.PI / 2.15;
+let isDragging = false;
+let lastMX = 0, lastMY = 0;
+
+function updateCamera() {
+  camera.position.x = camR * Math.sin(camP) * Math.cos(camT);
+  camera.position.y = camR * Math.cos(camP);
+  camera.position.z = camR * Math.sin(camP) * Math.sin(camT);
+  camera.lookAt(0, 0, 0);
+}
+updateCamera();
+
+/* Raycaster */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2(-99, -99);
+let hoveredCard = null;
+let hoveredSphere = false;
+let mouseX = 0, mouseY = 0;
+
+const tooltip = document.getElementById('tooltip');
+const tooltipTag = document.getElementById('tooltip-tag');
+const tooltipTitle = document.getElementById('tooltip-title');
+const tooltipCount = document.getElementById('tooltip-count');
+
+function onPointerMove(e) {
+  const cx = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const cy = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  mouse.x = (cx / window.innerWidth) * 2 - 1;
+  mouse.y = -(cy / window.innerHeight) * 2 + 1;
+  mouseX = cx;
+  mouseY = cy;
+  if (isDragging) {
+    const dx = cx - lastMX;
+    const dy = cy - lastMY;
+    targetT -= dx * 0.005;
+    targetP += dy * 0.005;
+    targetP = Math.max(0.3, Math.min(Math.PI - 0.3, targetP));
+    lastMX = cx;
+    lastMY = cy;
+  }
+}
+
+function onPointerDown(e) {
+  isDragging = true;
+  const cx = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const cy = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  lastMX = cx;
+  lastMY = cy;
+}
+
+function onPointerUp() {
+  isDragging = false;
+}
+
+function onWheel(e) {
+  camR += e.deltaY * 0.06;
+  camR = Math.max(55, Math.min(200, camR));
+}
+
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener('mousedown', onPointerDown);
+window.addEventListener('mouseup', onPointerUp);
+window.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 1) {
+    onPointerMove(e);
+  }
+}, { passive: false });
+window.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    onPointerDown(e);
+  }
+}, { passive: false });
+window.addEventListener('touchend', onPointerUp);
+window.addEventListener('wheel', onWheel, { passive: false });
+
+/* Click */
+window.addEventListener('click', (e) => {
+  if (isDragging && (Math.abs(e.clientX - lastMX) > 4 || Math.abs(e.clientY - lastMY) > 4)) return;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  const sphereHits = raycaster.intersectObject(sphere);
+  if (sphereHits.length > 0) {
+    showAbout();
+    return;
+  }
+
+  const hits = raycaster.intersectObjects(cards);
+  if (hits.length > 0) {
+    const proj = hits[0].object.userData.project;
+    openDetail(proj);
+  }
+});
+
+/* Detail view */
+function openDetail(proj) {
+  const detailView = document.getElementById('detail-view');
+  const detailTitle = document.getElementById('detail-title');
+  const detailMeta = document.getElementById('detail-meta');
+  const detailBody = document.getElementById('detail-body');
+  const mainNav = document.getElementById('main-nav');
+
+  detailTitle.textContent = proj.name;
+  detailMeta.textContent = proj.count + (proj.count > 1 ? ' Images' : ' Image');
+
+  const copy = PROJECT_COPY[proj.id] || { overview: '', contribution: '' };
+
+  let html = '';
+  if (proj.cover) {
+    html += '<img class="detail-hero" src="projects/' + proj.cover + '" alt="">';
+  }
+  html += '<div class="detail-section"><h2>Project Overview</h2><p>' + (copy.overview || '') + '</p></div>';
+  html += '<div class="detail-section"><h2>My Contribution</h2><p>' + (copy.contribution || '') + '</p></div>';
+
+  if (proj.images && proj.images.length) {
+    html += '<div class="detail-section"><h2>Gallery</h2><div class="detail-gallery">';
+    proj.images.forEach((img, idx) => {
+      html += '<img src="projects/' + img + '" alt="" onclick="openLightbox(' + idx + ')">';
+    });
+    html += '</div></div>';
+  }
+
+  detailBody.innerHTML = html;
+  detailView.classList.add('active');
+  container.classList.add('hidden');
+  mainNav.classList.add('hidden');
+  document.body.style.overflow = 'auto';
+
+  window.currentProject = proj;
+  window.currentImageIndex = 0;
+}
+
+window.backToSpace = function() {
+  document.getElementById('detail-view').classList.remove('active');
+  container.classList.remove('hidden');
+  document.getElementById('main-nav').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+};
+
+/* About overlay */
+window.showAbout = function() {
+  document.getElementById('about-overlay').classList.add('active');
+  container.classList.add('hidden');
+  document.getElementById('main-nav').classList.add('hidden');
+  document.getElementById('hint').classList.add('hidden');
+};
+
+window.hideAbout = function() {
+  document.getElementById('about-overlay').classList.remove('active');
+  container.classList.remove('hidden');
+  document.getElementById('main-nav').classList.remove('hidden');
+};
+
+/* Lightbox */
+window.openLightbox = function(index) {
+  const proj = window.currentProject;
+  if (!proj || !proj.images.length) return;
+  window.currentImageIndex = index;
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  img.src = 'projects/' + proj.images[index];
+  document.getElementById('lb-counter').textContent = (index + 1) + ' / ' + proj.images.length;
+  lb.classList.add('active');
+};
+
+window.closeLightbox = function() {
+  document.getElementById('lightbox').classList.remove('active');
+};
+
+window.lbPrev = function() {
+  const proj = window.currentProject;
+  if (!proj) return;
+  let i = window.currentImageIndex - 1;
+  if (i < 0) i = proj.images.length - 1;
+  openLightbox(i);
+};
+
+window.lbNext = function() {
+  const proj = window.currentProject;
+  if (!proj) return;
+  let i = window.currentImageIndex + 1;
+  if (i >= proj.images.length) i = 0;
+  openLightbox(i);
+};
+
+document.addEventListener('keydown', (e) => {
+  const lb = document.getElementById('lightbox');
+  if (!lb.classList.contains('active')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lbPrev();
+  if (e.key === 'ArrowRight') lbNext();
+});
+
+/* Resize */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* Animation loop */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  /* Auto rotate when not dragging - calm, gallery-like drift */
+  if (!isDragging) {
+    targetT += 0.018 * dt;
+  }
+
+  /* Smooth camera - slower, more elegant transitions */
+  camT += (targetT - camT) * 0.04;
+  camP += (targetP - camP) * 0.04;
+  updateCamera();
+
+  /* Billboard label & cards always face camera */
+  labelMesh.lookAt(camera.position);
+  cards.forEach(c => c.lookAt(camera.position));
+
+  /* Raycasting */
+  raycaster.setFromCamera(mouse, camera);
+
+  /* Sphere hover */
+  const sphereHits = raycaster.intersectObject(sphere);
+  if (sphereHits.length > 0 && !hoveredSphere) {
+    hoveredSphere = true;
+    document.body.style.cursor = 'pointer';
+    tooltipTag.textContent = 'Resume';
+    tooltipTitle.textContent = '刘子旭 · Event Producer';
+    tooltipCount.textContent = 'Click to view';
+    tooltip.classList.add('visible');
+  } else if (sphereHits.length === 0 && hoveredSphere) {
+    hoveredSphere = false;
+    if (!hoveredCard) document.body.style.cursor = 'default';
+    tooltip.classList.remove('visible');
+  }
+
+  /* Card hover */
+  const hits = raycaster.intersectObjects(cards);
+  if (hits.length > 0 && !hoveredSphere) {
+    const hit = hits[0].object;
+    if (hoveredCard !== hit) {
+      if (hoveredCard) {
+        hoveredCard.scale.set(1, 1, 1);
+        hoveredCard.material.emissive = new THREE.Color(0x000000);
+      }
+      hoveredCard = hit;
+      hoveredCard.scale.set(1.04, 1.04, 1.04);
+      hoveredCard.material.emissive = new THREE.Color(0x1a1a1a);
+      document.body.style.cursor = 'pointer';
+
+      const proj = hit.userData.project;
+      tooltipTag.textContent = 'Project';
+      tooltipTitle.textContent = proj.name;
+      tooltipCount.textContent = proj.count + (proj.count > 1 ? ' images' : ' image');
+      tooltip.classList.add('visible');
+    }
+  } else if (hits.length === 0) {
+    if (hoveredCard) {
+      hoveredCard.scale.set(1, 1, 1);
+      hoveredCard.material.emissive = new THREE.Color(0x000000);
+      hoveredCard = null;
+      if (!hoveredSphere) document.body.style.cursor = 'default';
+      tooltip.classList.remove('visible');
+    }
+  }
+
+  /* Tooltip follow mouse */
+  if (tooltip.classList.contains('visible')) {
+    let tx = mouseX + 18;
+    let ty = mouseY + 18;
+    if (tx + 280 > window.innerWidth) tx = mouseX - 290;
+    if (ty + 100 > window.innerHeight) ty = mouseY - 100;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+  }
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+} catch (err) {
+  showError('Init Error: ' + (err.stack || err.message));
+  document.getElementById('loading').classList.add('hidden');
+}
+</script>
+</body>
+</html>
